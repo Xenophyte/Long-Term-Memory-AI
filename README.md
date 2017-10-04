@@ -12,7 +12,8 @@ The machine is composed of three subsystems:
 
 - the knowledge database or long-term memory;
 - a neural network that takes the 1D plot of the function and selects the best specimens to use to fit that function (optional);
-- a genetic algorithm which mixes specimens together to form new ones.
+- a genetic algorithm which mixes specimens together to form new ones;
+- a creative engine that takes the library's functions and inserts them in differential equations to create new data.
 
 # The data
 
