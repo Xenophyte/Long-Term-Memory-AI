@@ -22,11 +22,11 @@ for n in range(1,5):
                                  {"lib_id":0,"input":[],"arg_index":1},
                                  {"lib_id":n,"input":[0,1]}]}
     lib.append(g)
-
-
-#function that takes in a graph and a list of input numbers and evaluateuates its result
-def evaluate(graph,values,index=-1):
-  #this case corresponds to
+    
+    
+#function that takes in a graph and a list of input numbers and evaluates its result
+def eval(graph,values,index=-1):
+  #this case corresponds to 
   if index == -1:
     index = find_output_node(graph)
   node = graph[index]
@@ -37,12 +37,12 @@ def evaluate(graph,values,index=-1):
   else:
     args = []
     for argument in node["input"]:
-      arg = evaluate(graph,values,argument)
+      arg = eval(graph,values,argument)
       args.append(arg)
     if node_type == "function":
         return lib_entry["function"](args)
     elif node_type == "graph":
-        return evaluate(lib_entry["graph"](args),args)
+        return eval(lib_entry["graph"](args),args)
 
 #returns the position of the output node within the graph
 def find_output_node(graph):
@@ -113,9 +113,9 @@ def insert_at(donor_graph,recipient_graph,site=-1):
     return new_graph+processed_donor
 
 def print2Dmatrix(matrix):
-    print('\n'.join([''.join(['{:4}'.format(item) for item in row])
+    print('\n'.join([''.join(['{:4}'.format(item) for item in row]) 
       for row in matrix]))
-
+    
 def merge_input_entries(graph,i=-1,j=-1):
     n_args = number_of_arguments(graph)
     if n_args <= 1:
@@ -178,27 +178,27 @@ def plot_specimen(graph,values,x_range=[-10,10],variable_position=-1):
     x_pos = variable_position if variable_position in range(n_args) else randint(0,n_args-1)
     #input_size*number_of_data_points matrix that contains a list of input vectors like [parameter1, parameter2, x_value, ...]
     value_matrix = [[(xe if v == x_pos else value) for v, value in enumerate(values)] for xe in x]
-    y = np.array([ evaluate(graph,value_matrix[i]) for i in range(len(value_matrix)) ])
+    y = np.array([ eval(graph,value_matrix[i]) for i in range(len(value_matrix)) ])
     pylab.plot(x,y)
     pylab.show()
 
 #given a set of parameters and a graph, compute the error relative to a dataset x, y
-def error(graph, parameters, variable_position, data):
+def error(graph,parameters,variable_position,data):
     X = data["x"]
     Y = data["y"]
     e = 0
     arg = deepcopy(parameters)
-    for x, y in zip(X,Y):
+    for x,y in zip(X,Y):
         arg[variable_position] = x
-        e += (y-evaluate(graph,arg))**2
+        e += (y-eval(graph,arg))**2
     return e if e == e else 10**10
 
 #makes updates the parameters of a graph
-def gradient(func, values):
+def gradient(function,values):
     EPSILON = 0.000000001
-    value_here = np.array([ func(values) for i in range(len(values)) ])
+    value_here = np.array([ function(values) for i in range(len(values)) ])
     dx = np.array([[ EPSILON if i == j else 0 for i in range(len(values)) ] for j in range(len(values)) ])
-    value_there = np.array([ func(values+dx[i]) for i in range(len(values)) ])
+    value_there = np.array([ function(values+dx[i]) for i in range(len(values)) ])
     grad = (value_there-value_here)/EPSILON
     return grad
 
@@ -217,6 +217,7 @@ def optimize(graph,data,variable_position=-1,timeout=-1):
     iterations = 0
     MAX_ITERATIONS = 50
     while True:
+        raise Error
         grad = gradient(lambda a: error(graph,a,variable_position,data),values)
         current_error = error(graph,values,variable_position,data)
         #if the accuracy goal has been reached, stop and return the input vector
@@ -232,7 +233,7 @@ def optimize(graph,data,variable_position=-1,timeout=-1):
             if next_error > current_error:
                 EPSILON *= 0.8
             #else just move on
-            else:
+            else: 
                 break
         values += -EPSILON*grad
     return {"X": variable_position, "parameters": values, "iterations": iterations, "error": current_error}
@@ -247,7 +248,7 @@ def plot_optimized(graph,data):
             error = result["error"]
             values = result["parameters"]
             x_pos = result["X"]
-    plot_specimen(graph,values,[min(data["x"]),max(data["x"])],x_pos)
+    plot_specimen(graph,values,[min(x),max(x)],x_pos)
 
 #fitness of a given graph
 def unfitness(graph,data):
@@ -272,12 +273,13 @@ def evolution(data):
     weights = np.array([ 1/POPULATION_SIZE for i in range(POPULATION_SIZE) ])
     best_error_so_far = 10**10
     #evolve
-    # return population
-    for generation in range(1):
+    #return population
+    for generation in range(10):
         print('evolving generation {0} of 20'.format(generation))
         #compute weights
         pool = Pool(4)
-        errors = np.array(pool.starmap(unfitness, [(specimen, data) for specimen in population]))
+        from itertools import starmap
+        errors = np.array(starmap(unfitness, [(specimen, data) for specimen in population]))
         pool.close()
         pool.join()
         #errors = np.array([ unfitness(specimen,data) for specimen in population ])
