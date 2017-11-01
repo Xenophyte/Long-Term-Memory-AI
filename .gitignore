@@ -1,0 +1,4 @@
+*.pem
+*.swp
+*.svo
+__pycache__rm

@@ -298,9 +298,9 @@ def evolution(data, n_generations):
         winner = np.argmin(errors)
 
         # These two lines slow down the evolution by 50%
-        # draw(population[winner])
-        # plot_optimized(population[winner],data)
-        
+        draw(population[winner])
+        plot_optimized(population[winner],data)
+
         if min_error < best_error_so_far:
             best_error_so_far = min_error
             fittest_specimen = population[winner]
