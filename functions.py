@@ -24,7 +24,8 @@ for n in range(1,5):
     lib.append(g)
 
 
-#function that takes in a graph and a list of input numbers and evaluateuates its result
+#function that takes in a graph and a list of input numbers and evaluates its result
+### Function recursion in python is apparently super slow so we need to think of a better way to do this
 def evaluate(graph,values,index=-1):
   #this case corresponds to
   if index == -1:
@@ -196,7 +197,7 @@ def error(graph, parameters, variable_position, data):
 #makes updates the parameters of a graph
 def gradient(func, values):
     EPSILON = 0.000000001
-    value_here = np.array([ func(values) for i in range(len(values)) ])
+    value_here = np.repeat(func(values), len(values))
     dx = np.array([[ EPSILON if i == j else 0 for i in range(len(values)) ] for j in range(len(values)) ])
     value_there = np.array([ func(values+dx[i]) for i in range(len(values)) ])
     grad = (value_there-value_here)/EPSILON
@@ -257,7 +258,7 @@ def unfitness(graph,data):
     return result["error"] + 1*(end-start)
 
 #takes the items from the library and mixes them to make new graphs until it finds one that fits the data
-def evolution(data):
+def evolution(data, n_generations):
     ACCURACY_GOAL = 0.01
     POPULATION_SIZE = 100
     MUTATION_RATE = 0.3
@@ -273,10 +274,10 @@ def evolution(data):
     best_error_so_far = 10**10
     #evolve
     # return population
-    for generation in range(1):
-        print('evolving generation {0} of 20'.format(generation))
+    for generation in range(n_generations):
+        print('evolving generation {0} of {1}'.format(generation, n_generations))
         #compute weights
-        pool = Pool(4)
+        pool = Pool(8)
         errors = np.array(pool.starmap(unfitness, [(specimen, data) for specimen in population]))
         pool.close()
         pool.join()
