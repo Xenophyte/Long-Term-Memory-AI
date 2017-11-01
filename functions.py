@@ -230,12 +230,21 @@ def optimize(graph,data,variable_position=-1,timeout=-1):
             next_error = error(graph,values - EPSILON*grad,variable_position,data)
             #if the change increases the error, reduce the size of the step
             if next_error > current_error:
-                EPSILON *= 0.8
+                EPSILON *= 0.5
             #else just move on
             else: 
                 break
         values += -EPSILON*grad
     return {"X": variable_position, "parameters": values, "iterations": iterations, "error": current_error}
+
+def full_optimize(graph,data):
+    min_error = 10**10
+    n_args = number_of_arguments(graph)
+    for n in range(n_args):
+        optimization = optimize(graph,data,variable_position=n)
+        if optimization["error"] < min_error:
+            best = optimization
+    return optimization
 
 #plot the optimal fit os a graph onto a set of data points
 def plot_optimized(graph,data):
@@ -252,7 +261,7 @@ def plot_optimized(graph,data):
 #fitness of a given graph
 def unfitness(graph,data):
     start = time()
-    result = optimize(graph,data,-1)
+    result = full_optimize(graph,data)
     end = time()
     return result["error"] + 1*(end-start)
 
@@ -272,7 +281,7 @@ def evolution(data):
     weights = np.array([ 1/POPULATION_SIZE for i in range(POPULATION_SIZE) ])
     best_error_so_far = 10**10
     #evolve
-    for generation in range(10):
+    for generation in range(20):
         print('evolving generation {0} of 20'.format(generation))
         #compute weights
         pool = Pool(4)
