@@ -184,7 +184,7 @@ def plot_specimen(graph,values,x_range=[-10,10],variable_position=-1):
     pylab.show()
 
 #given a set of parameters and a graph, compute the error relative to a dataset x, y
-def error(graph, parameters, variable_position, data):
+def error_(graph, parameters, variable_position, data):
     X = data["x"]
     Y = data["y"]
     e = 0
@@ -192,6 +192,16 @@ def error(graph, parameters, variable_position, data):
     for x, y in zip(X,Y):
         arg[variable_position] = x
         e += (y-evaluate(graph,arg))**2
+    return e if e == e else 10**10
+
+#given a set of parameters and a graph, compute the error relative to a dataset x, y
+def error(graph, parameters, variable_position, data):
+    arg = np.tile(parameters,
+                  (data["x"].shape[0], max(parameters.shape[0]-1, 1)))
+
+    arg[:, variable_position] = data["x"]
+    e = np.sum(np.square(data["y"] - evaluate(graph, arg.T)))
+
     return e if e == e else 10**10
 
 #makes updates the parameters of a graph
@@ -286,8 +296,11 @@ def evolution(data, n_generations):
         min_error = np.ndarray.min(errors)
         #save the best
         winner = np.argmin(errors)
-        draw(population[winner])
-        plot_optimized(population[winner],data)
+
+        # These two lines slow down the evolution by 50%
+        # draw(population[winner])
+        # plot_optimized(population[winner],data)
+        
         if min_error < best_error_so_far:
             best_error_so_far = min_error
             fittest_specimen = population[winner]
@@ -335,7 +348,11 @@ def evolution(data, n_generations):
         population = deepcopy(new_population)
         print("min error at generation n."+str(generation)+": "+str(np.ndarray.min(errors)))
     #recompute final errors
-    errors = np.array([ unfitness(specimen,data) for specimen in population ])
+    pool = Pool(8)
+    errors = np.array(pool.starmap(unfitness, [(specimen, data) for specimen in population]))
+    pool.close()
+    pool.join()
+    # errors = np.array([ unfitness(specimen,data) for specimen in population ])
     winner = np.argmin(errors)
     if errors[winner] < best_error_so_far:
             best_error_so_far = errors[winner]

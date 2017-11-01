@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title></title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+
+
+  <script
+    type="text/javascript"
+    src="/js/lib/dummy.js"
+
+  ></script>
+    <link rel="stylesheet" type="text/css" href="/css/normalize.css">
+
+    <link rel="stylesheet" type="text/css" href="/css/result-dark.css">
+
+      <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+      <script type="text/javascript" src="https://d3js.org/d3-selection-multi.v1.js"></script>
+  <style type="text/css">
+          .node {
+      font-size: 20px;
+      fill: #fff;
+      stroke-width: 0px;
+      opacity: 1;
+    }
+
+    .link {
+      fill: none;
+      stroke: #bbb;
+      opacity: 0.8;
+      stroke-width: 1px;
+
+  </style>
+    <script type="text/javascript">
+
+    //<![CDATA[
+        window.onload=function(){
+          var graph = JSON.parse('{"graph": {}, "multigraph": true, "nodes": [{"symbol": "-", "id": 0}, {"symbol": "*", "id": 1}, {"symbol": 0, "id": 2}, {"symbol": "*", "id": 3}, {"symbol": "*", "id": 4}, {"symbol": 1, "id": 5}, {"symbol": "*", "id": 6}, {"symbol": "*", "id": 7}, {"symbol": 2, "id": 8}, {"symbol": "-", "id": 9}, {"symbol": 3, "id": 10}, {"symbol": "*", "id": 11}], "directed": true, "links": [{"arg": 1, "key": 0, "target": 0, "source": 1}, {"arg": 0, "key": 0, "target": 3, "source": 2}, {"arg": 0, "key": 0, "target": 1, "source": 3}, {"arg": 1, "key": 0, "target": 3, "source": 4}, {"arg": 0, "key": 0, "target": 6, "source": 5}, {"arg": 0, "key": 0, "target": 0, "source": 6}, {"arg": 1, "key": 0, "target": 1, "source": 6}, {"arg": 0, "key": 0, "target": 4, "source": 6}, {"arg": 1, "key": 1, "target": 4, "source": 6}, {"arg": 1, "key": 0, "target": 6, "source": 7}, {"arg": 0, "key": 0, "target": 9, "source": 8}, {"arg": 1, "key": 0, "target": 11, "source": 8}, {"arg": 0, "key": 0, "target": 7, "source": 9}, {"arg": 1, "key": 1, "target": 7, "source": 9}, {"arg": 0, "key": 0, "target": 11, "source": 10}, {"arg": 1, "key": 0, "target": 9, "source": 11}]}');
+
+
+var color = d3.scaleOrdinal(d3.schemeCategory10);
+var svg = d3.select("svg"),
+  width = +svg.attr("width"),
+  height = +svg.attr("height"),
+  node,
+  link;
+
+svg.append('defs').append('marker')
+  .attrs({
+    'id': 'arrowhead',
+    'viewBox': '-0 -5 10 10',
+    'refX': 13,
+    'refY': 0,
+    'orient': 'auto',
+    'markerWidth': 13,
+    'markerHeight': 13,
+    'xoverflow': 'visible'
+  })
+  .append('svg:path')
+  .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+  .attr('fill', '#999')
+  .style('stroke', 'none');
+var simulation = d3.forceSimulation()
+  .force("link", d3.forceLink().distance(10).strength(2))
+  .force("charge", d3.forceManyBody().strength(function(d, i) {
+    return i == 0 ? -1000 : -500;
+  }))
+  .force("center", d3.forceCenter(width / 2, height / 2));
+
+// d3.json("graph.json", function (error, graph) {
+//    if (error) throw error;
+update(graph);
+//})
+function update(graph) {
+  console.log(graph)
+  var nodes = graph["nodes"],
+    nodeById = d3.map(nodes, function(d) {
+      return d.id;
+    }),
+    links = graph["links"],
+    bilinks = [];
+
+  links.forEach(function(link) {
+    var s = link.source = nodeById.get(link.source),
+      t = link.target = nodeById.get(link.target),
+      i = {}; // intermediate node
+    nodes.push(i);
+    links.push({
+      source: s,
+      target: i
+    }, {
+      source: i,
+      target: t
+    });
+    bilinks.push([s, i, t]);
+  });
+
+  var link = svg.selectAll(".link")
+    .data(bilinks)
+    .enter().append("path")
+    .attr("class", "link")
+    .attr('marker-end', 'url(#arrowhead)');
+
+  var node = svg.selectAll(".node")
+    .data(nodes.filter(function(d) {
+      return d.id;
+    }))
+    .enter().append("g")
+    .attr("class", "node")
+    .call(d3.drag()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended));
+
+  node.append("rect")
+    .attr("width", 15)
+    .attr("height", 15)
+    .attr("rx", d => (typeof d.symbol == "number") ? "0" : "30")
+    .attr("ry", d => (typeof d.symbol == "number") ? "0" : "30")
+    .attr("fill", function(d) {
+      return color(d.symbol);
+    })
+    .attr("transform", "translate(-5, -6)")
+
+  node.append("text")
+    .attr("text-anchor", "start")
+    .attr("alignment-baseline", "hanging")
+    .text(function(d) {
+      return d.symbol;
+    })
+    .attr("transform", "translate(-3, -6)");
+
+  simulation
+    .nodes(nodes)
+    .on("tick", ticked);
+
+  simulation.force("link")
+    .links(links);
+
+  function ticked() {
+    link.attr("d", positionLink);
+    node.attr("transform", positionNode);
+  }
+}
+
+function positionLink(d) {
+  return "M" + d[0].x + "," + d[0].y + "S" + d[1].x + "," + d[1].y + " " + d[2].x + "," + d[2].y;
+}
+
+function positionNode(d) {
+  return "translate(" + d.x + "," + d.y + ")";
+}
+
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x, d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x, d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null, d.fy = null;
+}
+
+        }
+    //]]>
+
+</script>
+
+</head>
+<body>
+  <svg width="800" height="500"></svg>
+<script>
+
+
+</script>
+
+
+  <script>
+    // tell the embed parent frame the height of the content
+    if (window.parent && window.parent.parent){
+      window.parent.parent.postMessage(["resultsFrame", {
+        height: document.body.getBoundingClientRect().height,
+        slug: "ce9tmdx1"
+      }], "*")
+    }
+  </script>
+</body>
+</html>
