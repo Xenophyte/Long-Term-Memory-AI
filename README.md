@@ -6,7 +6,7 @@ The goal of this project is to prove in a toy model the advantages of using long
 
 This principle is the principle behind all evolution of complexity in the universe, be it intelligence, life, technology or knowledge. To educate a child one doesn't sit it in front of a million examples of the Navier-Stokes equation and let it train for 15 years the neural network in its brain on that data; instead, it we give it a few problems it can solve within the reach of its abilities and then use the acquired knowledge to build on top of that new tools and concepts to address new problems. The same is true for technology: each new invention is reused later to make other new, different technologies. And the interesting thing about a system based on this principle is that like with a real person, one can't tell what exactly it will be good at.
 
-# Arquitecture
+# Architecture
 
 The machine is composed of three subsystems:
 
