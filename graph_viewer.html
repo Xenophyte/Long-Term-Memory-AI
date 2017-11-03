@@ -1,174 +1,191 @@
-
 <!DOCTYPE html>
 <html>
-<head>
-  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <title></title>
-  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <meta name="robots" content="noindex, nofollow">
-  <meta name="googlebot" content="noindex, nofollow">
+
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <title></title>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta name="robots" content="noindex, nofollow">
+        <meta name="googlebot" content="noindex, nofollow">
 
 
-      <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
-      <script type="text/javascript" src="https://d3js.org/d3-selection-multi.v1.js"></script>
-  <style type="text/css">
-          .node {
-      font-size: 20px;
-      fill: #fff;
-      stroke-width: 0px;
-      opacity: 1;
-    }
+        <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+        <script type="text/javascript" src="https://d3js.org/d3-selection-multi.v1.js"></script>
+        <style type="text/css">
+            body {
+                background-color: rgb(32, 32, 32);
+            }
 
-    .link {
-      fill: none;
-      stroke: #bbb;
-      opacity: 0.8;
-      stroke-width: 1px;
+            .node {
+                font-size: 15px;
+                fill: #fff;
+                stroke-width: 0px;
+                opacity: 1;
+                text-shadow: 1px 1px 4px #000;
+            }
 
-  </style>
-    <script type="text/javascript">
+            .node text {
+                text-anchor: middle;
+                alignment-baseline: middle;
+                user-select: none;
+            }
 
-        window.onload=function(){
-          var graph = JSON.parse('{"multigraph": true, "nodes": [{"symbol": 0, "id": 0}, {"symbol": "*", "id": 1}, {"symbol": 1, "id": 2}, {"symbol": "-", "id": 3}, {"symbol": 2, "id": 4}, {"symbol": "*", "id": 5}, {"symbol": 3, "id": 6}, {"symbol": "+", "id": 7}, {"symbol": "*", "id": 8}, {"symbol": 4, "id": 9}, {"symbol": "*", "id": 10}, {"symbol": 5, "id": 11}, {"symbol": "-", "id": 12}, {"symbol": 6, "id": 13}, {"symbol": "*", "id": 14}, {"symbol": 7, "id": 15}, {"symbol": "*", "id": 16}, {"symbol": 8, "id": 17}, {"symbol": "+", "id": 18}, {"symbol": "*", "id": 19}, {"symbol": 9, "id": 20}, {"symbol": 10, "id": 21}, {"symbol": "-", "id": 22}], "directed": true, "graph": {}, "links": [{"key": 0, "target": 1, "arg": 1, "source": 0}, {"key": 0, "target": 3, "arg": 0, "source": 2}, {"key": 0, "target": 1, "arg": 0, "source": 3}, {"key": 0, "target": 5, "arg": 0, "source": 4}, {"key": 0, "target": 3, "arg": 1, "source": 5}, {"key": 0, "target": 7, "arg": 1, "source": 6}, {"key": 0, "target": 5, "arg": 1, "source": 7}, {"key": 0, "target": 7, "arg": 0, "source": 8}, {"key": 0, "target": 10, "arg": 1, "source": 9}, {"key": 0, "target": 8, "arg": 0, "source": 10}, {"key": 1, "target": 8, "arg": 1, "source": 10}, {"key": 0, "target": 19, "arg": 1, "source": 11}, {"key": 0, "target": 12, "arg": 1, "source": 11}, {"key": 0, "target": 10, "arg": 0, "source": 12}, {"key": 0, "target": 14, "arg": 0, "source": 13}, {"key": 0, "target": 12, "arg": 0, "source": 14}, {"key": 0, "target": 16, "arg": 1, "source": 15}, {"key": 0, "target": 14, "arg": 1, "source": 16}, {"key": 0, "target": 18, "arg": 0, "source": 17}, {"key": 0, "target": 16, "arg": 0, "source": 18}, {"key": 0, "target": 18, "arg": 1, "source": 19}, {"key": 0, "target": 22, "arg": 0, "source": 20}, {"key": 0, "target": 22, "arg": 1, "source": 21}, {"key": 0, "target": 19, "arg": 0, "source": 22}]}');
+            .node text:hover {
+                cursor: default;
+            }
+
+            .link {
+                fill: none;
+                stroke: #d2d2d2;
+                opacity: 0.8;
+                stroke-width: 1px;
+        </style>
+        <script type="text/javascript">
+            window.onload = function() {
+                var graph = JSON.parse(
+                    `{"multigraph": true, "nodes": [{"symbol": 0, "id": 0}, {"symbol": "*", "id": 1}, {"symbol": 1, "id": 2}, {"symbol": "-", "id": 3}, {"symbol": 2, "id": 4}, {"symbol": "*", "id": 5}, {"symbol": 3, "id": 6}, {"symbol": "+", "id": 7}, {"symbol": "*", "id": 8}, {"symbol": 4, "id": 9}, {"symbol": "*", "id": 10}, {"symbol": 5, "id": 11}, {"symbol": "-", "id": 12}, {"symbol": 6, "id": 13}, {"symbol": "*", "id": 14}, {"symbol": 7, "id": 15}, {"symbol": "*", "id": 16}, {"symbol": 8, "id": 17}, {"symbol": "+", "id": 18}, {"symbol": "*", "id": 19}, {"symbol": 9, "id": 20}, {"symbol": 10, "id": 21}, {"symbol": "-", "id": 22}], "directed": true, "graph": {}, "links": [{"key": 0, "target": 1, "arg": 1, "source": 0}, {"key": 0, "target": 3, "arg": 0, "source": 2}, {"key": 0, "target": 1, "arg": 0, "source": 3}, {"key": 0, "target": 5, "arg": 0, "source": 4}, {"key": 0, "target": 3, "arg": 1, "source": 5}, {"key": 0, "target": 7, "arg": 1, "source": 6}, {"key": 0, "target": 5, "arg": 1, "source": 7}, {"key": 0, "target": 7, "arg": 0, "source": 8}, {"key": 0, "target": 10, "arg": 1, "source": 9}, {"key": 0, "target": 8, "arg": 0, "source": 10}, {"key": 1, "target": 8, "arg": 1, "source": 10}, {"key": 0, "target": 19, "arg": 1, "source": 11}, {"key": 0, "target": 12, "arg": 1, "source": 11}, {"key": 0, "target": 10, "arg": 0, "source": 12}, {"key": 0, "target": 14, "arg": 0, "source": 13}, {"key": 0, "target": 12, "arg": 0, "source": 14}, {"key": 0, "target": 16, "arg": 1, "source": 15}, {"key": 0, "target": 14, "arg": 1, "source": 16}, {"key": 0, "target": 18, "arg": 0, "source": 17}, {"key": 0, "target": 16, "arg": 0, "source": 18}, {"key": 0, "target": 18, "arg": 1, "source": 19}, {"key": 0, "target": 22, "arg": 0, "source": 20}, {"key": 0, "target": 22, "arg": 1, "source": 21}, {"key": 0, "target": 19, "arg": 0, "source": 22}]}`
+                );
 
 
-var color = d3.scaleOrdinal(d3.schemeCategory10);
-var svg = d3.select("svg"),
-  width = +svg.attr("width"),
-  height = +svg.attr("height"),
-  node,
-  link;
+                var color = d3.scaleOrdinal(d3.schemeCategory10);
+                var svg = d3.select("svg"),
+                    width = +svg.attr("width"),
+                    height = +svg.attr("height"),
+                    node,
+                    link;
 
-  var radius = 15;
-svg.append('defs').append('marker')
-  .attrs({
-    'id': 'arrowhead',
-    'viewBox': '-0 -5 10 10',
-    'refX': 13,
-    'refY': 0,
-    'orient': 'auto',
-    'markerWidth': 13,
-    'markerHeight': 13,
-    'xoverflow': 'visible'
-  })
-  .append('svg:path')
-  .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
-  .attr('fill', '#999')
-  .style('stroke', 'none');
-var simulation = d3.forceSimulation()
-  .force("link", d3.forceLink().distance(1).strength(2))
-  .force("charge", d3.forceManyBody().strength(function(d, i) {
-    return i == 0 ? -1000 : -500;
-  }))
-  .force("center", d3.forceCenter(width / 2, height / 2));
+                var radius = 15;
+                svg.append('defs').append('marker')
+                    .attrs({
+                        'id': 'arrowhead',
+                        'viewBox': '-0 -7.5 15 15',
+                        'refX': 13,
+                        'refY': 0,
+                        'orient': 'auto',
+                        'markerWidth': 13,
+                        'markerHeight': 13,
+                        'xoverflow': 'visible'
+                    })
+                    .append('svg:path')
+                    .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                    .attr('fill', '#999')
+                    .style('stroke', 'none');
 
-d3.json("graph.json", function (error, graph) {
-    if (error) throw error;
-update(graph);
-})
+                var simulation = d3.forceSimulation()
+                    .force("link", d3.forceLink().distance(1).strength(1))
+                    .force("charge", d3.forceManyBody().strength(function(d, i) {
+                        return i == 0 ? -100 : -100;
+                    }))
+                    .force("center", d3.forceCenter(width / 2, height / 2));
 
-function update(graph) {
-  console.log(graph)
-  var nodes = graph["nodes"],
-    nodeById = d3.map(nodes, function(d) {
-      return d.id;
-    }),
-    links = graph["links"],
-    bilinks = [];
+                d3.json("graph.json", function(error, graph) {
+                    if (error) throw error;
+                    update(graph);
+                })
 
-  links.forEach(function(link) {
-    var s = link.source = nodeById.get(link.source),
-      t = link.target = nodeById.get(link.target),
-      i = {}; // intermediate node
-    nodes.push(i);
-    links.push({
-      source: s,
-      target: i
-    }, {
-      source: i,
-      target: t
-    });
-    bilinks.push([s, i, t]);
-  });
+                function update(graph) {
+                    var nodes = graph["nodes"],
+                        nodeById = d3.map(nodes, function(d) {
+                            return d.id;
+                        }),
+                        links = graph["links"],
+                        bilinks = [];
 
-  var link = svg.selectAll(".link")
-    .data(bilinks)
-    .enter().append("path")
-    .attr("class", "link")
-    .attr('marker-end', 'url(#arrowhead)');
+                    links.forEach(function(link) {
+                        var s = link.source = nodeById.get(link.source),
+                            t = link.target = nodeById.get(link.target),
+                            i = {}; // intermediate node
+                        nodes.push(i);
+                        links.push({
+                            source: s,
+                            target: i
+                        }, {
+                            source: i,
+                            target: t
+                        });
+                        bilinks.push([s, i, t]);
+                    });
+                    console.log(nodes)
+                    console.log(links)
+                    console.log(bilinks)
 
-  var node = svg.selectAll(".node")
-    .data(nodes.filter(function(d) {
-      return d.id;
-    }))
-    .enter().append("g")
-    .attr("class", "node")
-    .call(d3.drag()
-      .on("start", dragstarted)
-      .on("drag", dragged)
-      .on("end", dragended));
+                    var link = svg.selectAll(".link")
+                        .data(bilinks)
+                        .enter().append("path")
+                        .attr("class", "link")
+                        .attr('marker-end', 'url(#arrowhead)');
 
-  node.append("rect")
-    .attr("width", radius)
-    .attr("height", radius)
-    .attr("rx", d => (typeof d.symbol == "number") ? "0" : "30")
-    .attr("ry", d => (typeof d.symbol == "number") ? "0" : "30")
-    .attr("fill", function(d) {
-      return color(d.symbol);
-    })
-    .attr("transform", "translate(-5, -6)")
+                    var node = svg.selectAll(".node")
+                        .data(nodes.filter(function(d) {
+                            return d.id != null;
+                        }))
+                        .enter().append("g")
+                        .attr("class", "node")
+                        .call(d3.drag()
+                            .on("start", dragstarted)
+                            .on("drag", dragged)
+                            .on("end", dragended));
 
-  node.append("text")
-    .attr("text-anchor", "start")
-    .attr("alignment-baseline", "hanging")
-    .text(function(d) {
-      return d.symbol;
-    })
-    .attr("transform", "translate(-3, -6)");
+                    node.append("rect")
+                        .attr("width", radius)
+                        .attr("height", radius)
+                        .attr("rx", d => (['-', '+', '*', "÷"].indexOf(d.symbol) >= 0) ? 30 : 0) // Make squares and circles
+                        .attr("ry", d => (['-', '+', '*', "÷"].indexOf(d.symbol) >= 0) ? 30 : 0)
+                        .attr("fill", function(d) {
+                            return color(d.symbol);
+                        })
+                        .attr("transform", "translate(-5, -6)")
 
-  simulation
-    .nodes(nodes)
-    .on("tick", ticked);
+                    node.append("text")
+                        .text(function(d) {
+                            return d.symbol;
+                        })
+                        .attr("transform", "translate(1, 3)");
 
-  simulation.force("link")
-    .links(links);
+                    simulation
+                        .nodes(nodes)
+                        .on("tick", ticked);
 
-  function ticked() {
-    link.attr("d", positionLink);
-    node.attr("transform", positionNode);
-  }
-}
+                    simulation.force("link")
+                        .links(links);
 
-function positionLink(d) {
-  return "M" + d[0].x + "," + d[0].y + "S" + d[1].x + "," + d[1].y + " " + d[2].x + "," + d[2].y;
-}
+                    function ticked() {
+                        link.attr("d", positionLink);
+                        node.attr("transform", positionNode);
+                    }
+                }
 
-function positionNode(d) {
-    d.x = Math.max(radius, Math.min(width - radius, d.x));
-    d.y = Math.max(radius, Math.min(width - radius, d.y));
-  return "translate(" + d.x + "," + d.y + ")";
-}
+                function positionLink(d) {
+                    return "M" + d[0].x + "," + d[0].y + "S" + d[1].x + "," + d[1].y + " " + d[2].x + "," + d[2].y;
+                }
 
-function dragstarted(d) {
-  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-  d.fx = d.x, d.fy = d.y;
-}
+                function positionNode(d) {
+                    d.x = Math.max(radius, Math.min(width - radius, d.x));
+                    d.y = Math.max(radius, Math.min(width - radius, d.y));
+                    return "translate(" + d.x + "," + d.y + ")";
+                }
 
-function dragged(d) {
-  d.fx = d3.event.x, d.fy = d3.event.y;
-}
+                function dragstarted(d) {
+                    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x, d.fy = d.y;
+                }
 
-function dragended(d) {
-  if (!d3.event.active) simulation.alphaTarget(0);
-  d.fx = null, d.fy = null;
-}
+                function dragged(d) {
+                    d.fx = d3.event.x, d.fy = d3.event.y;
+                }
 
-        }
+                function dragended(d) {
+                    if (!d3.event.active) simulation.alphaTarget(0);
+                    d.fx = null, d.fy = null;
+                }
 
-</script>
+            }
+        </script>
 
-</head>
-<body>
-  <svg width="1000" height="1000"></svg>
-</body>
+    </head>
+
+    <body>
+        <svg width="1000" height="1000"></svg>
+    </body>
+
 </html>
