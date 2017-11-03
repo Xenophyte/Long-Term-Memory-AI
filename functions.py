@@ -275,8 +275,8 @@ def gradient(function,values):
 def evolution(data):
     ACCURACY_GOAL = 0.01
     POPULATION_SIZE = 300
-    MUTATION_RATE = 0.05
-    BIRTH_RATE = 0.05
+    MUTATION_RATE = 0.1
+    BIRTH_RATE = 0.1
     CLONING_RATE = 0.05
     DEATH_RATE = MUTATION_RATE + BIRTH_RATE + CLONING_RATE
     population = []
@@ -291,7 +291,7 @@ def evolution(data):
     #save the best
     best_error_so_far = 10**10
     winner = np.argmin(errors)
-    #population[winner].draw()
+    population[winner].draw()
     population[winner].plot_optimized(data)
     if min_error < best_error_so_far:
         best_error_so_far = min_error
@@ -344,7 +344,7 @@ def evolution(data):
         babies = 0
         n_babies = n_dead - (n_clones+n_mutants)
         for i in range(n_babies):
-            mother_index = choice(len(population),p=(1-weights)/sum(1-weights))#[0]["graph"]
+            mother_index = choice(len(population))#,p=(1-weights)/sum(1-weights))#[0]["graph"]
             mother = population[mother_index]
             father_index = choice(len(population),p=(1-weights)/sum(1-weights))#[0]["graph"]
             father = population[father_index]
