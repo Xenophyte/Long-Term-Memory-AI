@@ -326,7 +326,7 @@ def log_pop_to_json(population, errors, generation_no):
 #takes the items from the library and mixes them to make new graphs until it finds one that fits the data
 def evolution(data, n_generations=20):
     ACCURACY_GOAL = 0.01
-    POPULATION_SIZE = 100
+    POPULATION_SIZE = 300
     MUTATION_RATE = 0.05
     BIRTH_RATE = 0.05
     CLONING_RATE = 0.05
