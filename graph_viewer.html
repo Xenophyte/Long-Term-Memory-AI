@@ -47,7 +47,17 @@
                 );
 
 
+
+
+                d3.json("graph.json", function(error, graph) {
+                    if (error) throw error;
+                    update(graph);
+                })
+
                 var color = d3.scaleOrdinal(d3.schemeCategory10);
+                var nodeForceScale = d3.scaleLog()
+                    .range([0.5, 1])
+
                 var svg = d3.select("svg"),
                     width = +svg.attr("width"),
                     height = +svg.attr("height"),
@@ -71,18 +81,6 @@
                     .attr('fill', '#999')
                     .style('stroke', 'none');
 
-                var simulation = d3.forceSimulation()
-                    .force("link", d3.forceLink().distance(1).strength(1))
-                    .force("charge", d3.forceManyBody().strength(function(d, i) {
-                        return i == 0 ? -100 : -100;
-                    }))
-                    .force("center", d3.forceCenter(width / 2, height / 2));
-
-                d3.json("graph.json", function(error, graph) {
-                    if (error) throw error;
-                    update(graph);
-                })
-
                 function update(graph) {
                     var nodes = graph["nodes"],
                         nodeById = d3.map(nodes, function(d) {
@@ -105,9 +103,18 @@
                         });
                         bilinks.push([s, i, t]);
                     });
-                    console.log(nodes)
-                    console.log(links)
-                    console.log(bilinks)
+
+                    // Count number of identical links
+                    var link_count = {};
+
+                    links
+                        .map(d => `${d.source.id}_${d.target.id}`)
+                        .concat(links.map(d => `${d.target.id}_${d.source.id}`))
+                        .forEach(function(x) {
+                            link_count[x] = (link_count[x] || 0) + 1;
+                        });
+
+                    nodeForceScale.domain([1, Math.max(...Object.values(link_count))])
 
                     var link = svg.selectAll(".link")
                         .data(bilinks)
@@ -142,6 +149,22 @@
                         })
                         .attr("transform", "translate(1, 3)");
 
+                    simulation = d3.forceSimulation()
+                        .force("link", d3.forceLink()
+                        .distance(1)
+                        .strength(function(d) {
+                            return 1
+                            /*return 1/nodeForceScale((link_count[`${d.source.id}_${d.target.id}`] || 0) + (link_count[`${d.target.id}_${d.source.id}`] || 0))*/
+                        }))
+                        .force("charge", d3.forceManyBody()
+                        .strength(function(d) {
+                            return (d.id == null) ? -1000 : -500
+                            /*return -500 * nodeForceScale(edge_count[d.id]);*/
+                        })
+                        .distanceMax([200]))
+                        .force("center", d3.forceCenter(width / 2, height / 2))
+                        .stop()
+
                     simulation
                         .nodes(nodes)
                         .on("tick", ticked);
@@ -153,6 +176,14 @@
                         link.attr("d", positionLink);
                         node.attr("transform", positionNode);
                     }
+                    // Pre-bake simulation before display so it isn't too jarring for the viewer
+                    for (var i = 0, n = 200; i < n; ++i) {
+                        simulation.tick()
+                    }
+
+                    ticked()
+                    simulation.restart()
+
                 }
 
                 function positionLink(d) {
