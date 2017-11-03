@@ -39,22 +39,46 @@
                 stroke: #d2d2d2;
                 opacity: 0.8;
                 stroke-width: 1px;
+            }
+
+            svg {
+                border: 0.1px solid white;
+                margin: 5px;
+            }
         </style>
         <script type="text/javascript">
             window.onload = function() {
 
                 var lib_symbols = ['-', '+', '*', "÷"];
+                var radius = 15,
+                    width = 200,
+                    height = 200;
 
-                d3.json("graph.json", function(error, graph) {
-                    if (error) throw error;
-                    update(graph);
-                })
+                // Read in a json line file
+                fetch("log.json")
+                    .then(data => data.text())
+                    .then(function(data) {
+                        var data_arr = [];
+                        data.split('\n').forEach(function(line) {
+                            try {
+                                data_arr.push(JSON.parse(line));
+                            } catch (e) {}
+                        });
+                        return data_arr
+                    })
+                    .then(function(data) {
+                        d3.select("#graphs")
+                            .selectAll("svg")
+                            .data(data.slice(-1)[0]["population"].sort(function(a,b) {return a.error - b.error }))
+                            .enter()
+                            .each(specimen => update(specimen))
+                    })
 
                 var color = d3.scaleOrdinal(d3.schemeCategory10);
 
-                var svg = d3.select("svg"),
-                    width = window.innerWidth,
-                    height = window.innerHeight,
+                function update(graph) {
+                var svg = d3.select("#graphs")
+                    .append("svg"),
                     node,
                     link;
 
@@ -62,7 +86,9 @@
                     .attr("width", width)
                     .attr("height", height)
 
-                var radius = 15;
+                svg.append("text")
+                .text("hello")
+
                 svg.append('defs').append('marker')
                     .attrs({
                         'id': 'arrowhead',
@@ -78,8 +104,6 @@
                     .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
                     .attr('fill', '#999')
                     .style('stroke', 'none');
-
-                function update(graph) {
                     var nodes = graph["nodes"],
                         nodeById = d3.map(nodes, function(d) {
                             return d.id;
@@ -161,7 +185,7 @@
                         node.attr("transform", positionNode);
                     }
                     // Pre-bake simulation before display so it isn't too jarring for the viewer
-                    for (var i = 0, n = 300; i < n; ++i) {
+                    for (var i = 0, n = 100; i < n; ++i) {
                         simulation.tick()
                     }
 
@@ -170,13 +194,20 @@
 
                 }
 
+                sim_margin = 1.
                 function positionLink(d) {
+                    d[0].x = Math.max(sim_margin*radius, Math.min(width - sim_margin*radius, d[0].x));
+                    d[0].y = Math.max(sim_margin*radius, Math.min(width - sim_margin*radius, d[0].y));
+                    d[1].x = Math.max(0.5*sim_margin*radius, Math.min(width - 0.5*sim_margin*radius, d[1].x));
+                    d[1].y = Math.max(0.5*sim_margin*radius, Math.min(width - 0.5*sim_margin*radius, d[1].y));
+                    d[2].x = Math.max(sim_margin*radius, Math.min(width - sim_margin*radius, d[2].x));
+                    d[2].y = Math.max(sim_margin*radius, Math.min(width - sim_margin*radius, d[2].y));
                     return "M" + d[0].x + "," + d[0].y + "S" + d[1].x + "," + d[1].y + " " + d[2].x + "," + d[2].y;
                 }
 
                 function positionNode(d) {
-                    d.x = Math.max(radius, Math.min(width - radius, d.x));
-                    d.y = Math.max(radius, Math.min(width - radius, d.y));
+                    d.x = Math.max(sim_margin*radius, Math.min(width - sim_margin*radius, d.x));
+                    d.y = Math.max(sim_margin*radius, Math.min(width - sim_margin*radius, d.y));
                     return "translate(" + d.x + "," + d.y + ")";
                 }
 
@@ -200,7 +231,9 @@
     </head>
 
     <body>
-        <svg width="1000" height="1000"></svg>
+        <div id="graphs">
+
+        </div>
     </body>
 
 </html>

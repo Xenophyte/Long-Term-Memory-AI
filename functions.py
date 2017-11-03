@@ -150,10 +150,9 @@ class Tree:
         pylab.plot(x,y)
         pylab.show()
 
-    def export_json(self):
+    def export_json(self, filename=None):
         import json
         import networkx as nx
-        from io import StringIO
         from networkx.readwrite import json_graph
 
         G =nx.MultiDiGraph()
@@ -175,8 +174,11 @@ class Tree:
 
             json_data["nodes"][n] = {"id":node["id"], "symbol":symbol}
 
-        with open("graph.json", "w") as json_file:
-            json.dump(json_data, json_file)
+        if filename != None:
+            with open("graph.json", "w") as json_file:
+                json.dump(json_data, json_file)
+        else:
+            return json_data
 
     #given a set of parameters and a graph, compute the error relative to a dataset x, y
     def error(self,parameters,variable_position,data):
@@ -305,6 +307,22 @@ def gradient(func, values):
 def run_unfitness(specimen,data):
     return specimen.unfitness(data)
 
+def log_pop_to_json(population, errors, generation_no):
+    """This function takes a json representation of all specimen in the population and logs it to our json log file"""
+
+    from io import StringIO
+    import json
+
+    # export each specimen as json
+    population = list(map(lambda specimen: specimen.export_json(), population))
+    # Add error value to each specimen
+    for specimen, error in zip(population, errors):
+        specimen["error"] = error
+
+    with open("log.json", "a") as logfile:
+        json.dump({"population": population, "generation": generation_no}, logfile)
+        logfile.write("\n")
+
 #takes the items from the library and mixes them to make new graphs until it finds one that fits the data
 def evolution(data, n_generations=20):
     ACCURACY_GOAL = 0.01
@@ -403,6 +421,10 @@ def evolution(data, n_generations=20):
         #population[winner].draw()
         population[winner].plot_optimized(data)
         population[winner].export_json()
+
+        # Log all populations to json
+        log_pop_to_json(population, errors, generation)
+
         if min_error < best_error_so_far:
             best_error_so_far = min_error
             fittest_specimen = population[winner]
