@@ -15,7 +15,7 @@ lib = [{"type":"value","symbol":"v"},
        {"type":"function","function":lambda a:a[0]+a[1],"symbol":"+"},
        {"type":"function","function":lambda a:a[0]-a[1],"symbol":"-"},
        {"type":"function","function":lambda a:a[0]*a[1],"symbol":"*"},
-       {"type":"function","function":lambda a:a[0]/a[1],"symbol":"/"}]
+       {"type":"function","function":lambda a:a[0]/a[1],"symbol":"÷"}]
 #add a graph for each operator
 for n in range(1,5):
     g = {"type":"graph","graph":[{"lib_id":0,"input":[],"arg_index":0},
@@ -260,20 +260,49 @@ def plot_optimized(graph,data):
             x_pos = result["X"]
     plot_specimen(graph,values,[min(data["x"]),max(data["x"])],x_pos)
 
+def export_json_graph(graph):
+    import json
+    import networkx as nx
+    from io import StringIO
+    from networkx.readwrite import json_graph
+
+    G =nx.MultiDiGraph()
+
+    for n, node in enumerate(graph):
+        G.add_node(n, attr_dict=node)
+
+    for n1, node in enumerate(graph):
+        for i, n2 in enumerate(node["input"]):
+            G.add_edge(n2, n1, attr_dict={"arg":i})
+
+    json_data = json_graph.node_link_data(G)
+
+    for n, node in enumerate(json_data["nodes"]):
+        symbol = lib[node["lib_id"]]["symbol"]
+
+        if symbol == "v":
+            symbol = str(node["arg_index"])
+
+        json_data["nodes"][n] = {"id":node["id"], "symbol":symbol}
+
+
+    with open("graph.json", "w") as json_file:
+        json.dump(json_data, json_file)
+
 #fitness of a given graph
 def unfitness(graph,data):
     start = time()
     result = optimize(graph,data,-1)
     end = time()
-    return result["error"] + 1*(end-start)
+    return result["error"] + 10*(end-start)
 
 #takes the items from the library and mixes them to make new graphs until it finds one that fits the data
 def evolution(data, n_generations):
     ACCURACY_GOAL = 0.01
     POPULATION_SIZE = 100
-    MUTATION_RATE = 0.3
-    BIRTH_RATE = 0.2
-    CLONING_RATE = 0.1
+    MUTATION_RATE = 0.2
+    BIRTH_RATE = 0.05
+    CLONING_RATE = 0.05
     DEATH_RATE = MUTATION_RATE + BIRTH_RATE + CLONING_RATE
     population = []
     #create the initial population
@@ -299,6 +328,7 @@ def evolution(data, n_generations):
 
         # These two lines slow down the evolution by 50%
         draw(population[winner])
+        export_json_graph(population[winner])
         plot_optimized(population[winner],data)
 
         if min_error < best_error_so_far:
