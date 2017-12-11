@@ -2,6 +2,7 @@ import pylab
 import numpy as np
 from numpy.random import choice, randint
 from random import random, randint
+import random as rd
 from copy import deepcopy
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -9,31 +10,40 @@ import matplotlib.pyplot as plt
 import math
 from time import time
 from multiprocessing import Pool
+import operator
 
 #library of elements; there are three types: value, function (+,-,*,/) or graph (which will be added at the end of the file)
 lib = [{"type":"value","symbol":"v"},
        {"type":"function","function":lambda a:a[0]+a[1],"symbol":"+"},
        {"type":"function","function":lambda a:a[0]-a[1],"symbol":"-"},
        {"type":"function","function":lambda a:a[0]*a[1],"symbol":"*"},
-       {"type":"function","function":lambda a:a[0]/a[1],"symbol":"÷"}]
+       {"type":"function","function":lambda a:a[0]/a[1],"symbol":"/"}]
 
 class Tree:
-
-    def __str__(self):
-        return "Tree: " + str(self.graph)
-
-    def __init__(self,graph = None):
+    
+    def __init__(self,graph = None,values=None,variable_position=0):
+        self.fitness = 1
         if graph == None:
             self.graph = []
+            self.values = []
+            self.variable_position = 0
         else:
             self.graph = graph
-
+            if values == None:
+                n_args = self.number_of_arguments()
+                self.values = [random() for n in range(n_args)]
+            else:
+                self.values = values
+            self.variable_position = variable_position
+        #print("new graph created")
+        #print(self.values)
+            
     def clone(self):
         return Tree(self.graph)
-
+    
     #function that takes in a graph and a list of input numbers and evaluates its result
     def evaluate(self,values,index=-1):
-        #this case corresponds to
+        #this case corresponds to 
         if index == -1:
             index = self.find_output_node()
         node = self.graph[index]
@@ -83,7 +93,7 @@ class Tree:
         for arg in args:
             arguments[arg[1]] = arg[0]
         return arguments
-
+    
     def merge_input_entries(self,i=-1,j=-1):
         n_args = self.number_of_arguments()
         if n_args <= 1:
@@ -121,7 +131,7 @@ class Tree:
             if len(node["input"]) == 0:
                 node["arg_index"] = input_mapping[node["arg_index"]]
         return Tree(new_graph)
-
+    
     #this function draws the graph
     def draw(self):
         G = nx.MultiDiGraph()
@@ -137,51 +147,45 @@ class Tree:
         plt.close()
         nx.draw(G,labels = labels,with_labels = True,pos=nx.spring_layout(G))
         plt.show()
-
+    
     #plot a 1D graph of the function given some parameters
-    def plot_specimen(self,values,x_range=[-10,10],variable_position=-1):
+    def plot_specimen(self,values=None,x_range=[-10,10],variable_position=-1):
         #pylab.close()
         x = np.linspace(x_range[0],x_range[1],100)
         n_args = self.number_of_arguments()
-        x_pos = variable_position if variable_position in range(n_args) else randint(0,n_args-1)
+        if values == None:
+            values = self.values
+        x_pos = variable_position if variable_position in range(n_args) else self.variable_position
         #input_size*number_of_data_points matrix that contains a list of input vectors like [parameter1, parameter2, x_value, ...]
         value_matrix = [[(xe if v == x_pos else value) for v, value in enumerate(values)] for xe in x]
         y = np.array([ self.evaluate(value_matrix[i]) for i in range(len(value_matrix)) ])
         pylab.plot(x,y)
         pylab.show()
-
-    def export_json(self, filename=None):
-        import json
-        import networkx as nx
-        from networkx.readwrite import json_graph
-
-        G =nx.MultiDiGraph()
-
-        for n, node in enumerate(self.graph):
-            G.add_node(n, attr_dict=node)
-
-        for n1, node in enumerate(self.graph):
-            for i, n2 in enumerate(node["input"]):
-                G.add_edge(n2, n1, attr_dict={"arg":i})
-
-        json_data = json_graph.node_link_data(G)
-
-        for n, node in enumerate(json_data["nodes"]):
-            symbol = lib[node["lib_id"]]["symbol"]
-
-            if symbol == "v":
-                symbol = str(node["arg_index"])
-
-            json_data["nodes"][n] = {"id":node["id"], "symbol":symbol}
-
-        if filename != None:
-            with open("graph.json", "w") as json_file:
-                json.dump(json_data, json_file)
-        else:
-            return json_data
-
+        
+    #plot a 1D graph of the function given some parameters
+    def plot_with_data(self,data,x_range=[-10,10]):
+        #pylab.close()
+        x = np.linspace(x_range[0],x_range[1],100)
+        n_args = self.number_of_arguments()
+        x_pos = self.variable_position
+        values = self.values
+        #input_size*number_of_data_points matrix that contains a list of input vectors like [parameter1, parameter2, x_value, ...]
+        value_matrix = [[(xe if v == x_pos else value) for v, value in enumerate(values)] for xe in x]
+        y = np.array([ self.evaluate(value_matrix[i]) for i in range(len(value_matrix)) ])
+        pylab.plot(x,y)
+        x = data["x"]
+        y = data["y"]
+        pylab.scatter(x,y)
+        pylab.show()
+        
     #given a set of parameters and a graph, compute the error relative to a dataset x, y
-    def error(self,parameters,variable_position,data):
+    def error(self,data,parameters=None,variable_position=None):
+        if parameters == None:
+            parameters = self.values
+        if variable_position == None:
+            variable_position = self.variable_position
+        #print("computing error...")
+        #print("current parameters: {0}".format(self.values))
         X = data["x"]
         Y = data["y"]
         e = 0
@@ -190,9 +194,28 @@ class Tree:
             arg[variable_position] = x
             e += (y-self.evaluate(arg))**2
         return e if e == e else 10**10
+    
+    def optimize_once(self,data):
+        EPSILON = 0.001
+        n_args = self.number_of_arguments()
+        #print("number of arguments: {0}".format(n_args))
+        best_error = self.error(data,variable_position=0)
+        best_parameters = {"X":0,"values":self.values,"error":best_error}
+        for variable_position in range(n_args):
+            grad = gradient(lambda a: self.error(data,parameters=a,variable_position=variable_position),self.values)
+            current_error = self.error(data,variable_position=variable_position)
+            new_values = self.values - EPSILON*grad
+            new_error = self.error(data,parameters = new_values,variable_position = variable_position)
+            if new_error < best_error:
+                best_parameters = {"X":variable_position,"values":new_values,"error":new_error}
+                best_error = new_error
+        self.values = best_parameters["values"]
+        self.variable_position = best_parameters["X"]
+        return best_parameters
 
+    
     #optimizes a given graph on a set of data points x and y
-    def optimize(self,data,variable_position=-1,timeout=-1):
+    def optimize(self,data,variable_position=-1,timeout=False):
         start = time()
         n_args = self.number_of_arguments()
         #select a random position in the input vector for the x value
@@ -213,19 +236,22 @@ class Tree:
                 break
             while True:
                 iterations += 1
+                enough = (time() - start > 10) or (iterations > MAX_ITERATIONS) if timeout else iterations > MAX_ITERATIONS
                 #if iterations > MAX_ITERATIONS:
-                if (time() - start > 10) or (iterations > MAX_ITERATIONS):
+                #if (time() - start > 10) or (iterations > MAX_ITERATIONS):
+                if enough:
                     return {"X": variable_position, "parameters": values, "iterations": iterations, "error": current_error}
                 next_error = self.error(values - EPSILON*grad,variable_position,data)
                 #if the change increases the error, reduce the size of the step
                 if next_error > current_error:
                     EPSILON *= 0.5
                 #else just move on
-                else:
+                else: 
                     break
+            #print("epsilon: {0}".format(EPSILON))
             values += -EPSILON*grad
         return {"X": variable_position, "parameters": values, "iterations": iterations, "error": current_error}
-
+    
     def full_optimize(self,data):
         min_error = 10**10
         n_args = self.number_of_arguments()
@@ -234,7 +260,7 @@ class Tree:
             if optimization["error"] < min_error:
                 best = optimization
         return optimization
-
+    
     #plot the optimal fit os a graph onto a set of data points
     def plot_optimized(self,data):
         pylab.plot(data["x"],data["y"])
@@ -246,7 +272,7 @@ class Tree:
                 values = result["parameters"]
                 x_pos = result["X"]
         self.plot_specimen(values,[min(data["x"]),max(data["x"])],x_pos)
-
+    
     #fitness of a given graph
     def unfitness(self,data):
         start = time()
@@ -255,7 +281,125 @@ class Tree:
         return result["error"] + 1*(end-start)
 
 
+################################################################################################################################ 
+#g = {"type":"graph","graph":Tree([{"lib_id":0,"input":[],"arg_index":0}])}
+#lib.append(g)
+#Add a graph to the lib for each operator
+#for n in range(1,5):
+#    g = {"type":"graph","graph":Tree([{"lib_id":0,"input":[],"arg_index":0},
+#                                 {"lib_id":0,"input":[],"arg_index":1},
+#                                 {"lib_id":n,"input":[0,1]}])}
+#    lib.append(g)
 ################################################################################################################################
+class Population:
+    
+    def __init__(self,maxpop = 100):
+        self.BIRTH_PROBABILITY = 0.02
+        self.MUTATION_PROBABILITY = 0.02
+        self.DEATH_PROBABILITY = 0.02
+        self.MAXIMUM_POPULATION_SIZE = maxpop
+        self.population = []
+        for n, item in enumerate(lib):
+            if item["type"] == "value":
+                tree = Tree(graph=[{"lib_id":0,"input":[],"arg_index":0}],values=[random()])
+                self.population.append(tree)
+            elif item["type"] == "function":
+                input_vector = [random() for i in range(2)]
+                tree = Tree(graph=[{"lib_id":0,"input":[],"arg_index":0},
+                                 {"lib_id":0,"input":[],"arg_index":1},
+                                 {"lib_id":n,"input":[0,1]}],values=input_vector)
+                self.population.append(tree)
+                
+    def evolve(self,data,generations=100):
+        for n in range(generations):
+            print("{0}-th year, population size = {1}".format(n,len(self.population)))
+            self.evolution_step(data)
+        return self.best_specimen(data)
+            
+    def birth(self,sorted_population=None):
+        if sorted_population == None:
+            recipient = rd.choice(self.population)
+            donor = rd.choice(self.population)
+        else:
+            recipient = rd.choice(sorted_population[int(0.8*len(sorted_population)):])
+            recipient = self.population[recipient[0]]
+            donor = rd.choice(sorted_population[:int(0.8*len(sorted_population))])
+            donor = self.population[donor[0]]
+        baby = insert_at(donor,recipient)
+        return baby
+    
+    def mutate(self,sorted_population=None):
+        if sorted_population == None:
+            mutant = rd.choice(self.population).merge_input_entries()
+        else:
+            mutant = rd.choice(sorted_population[int(0.8*len(sorted_population)):])
+            mutant = self.population[mutant[0]]
+        return mutant
+    
+    def kill(self,sorted_population=None):
+        if len(self.population) < 10:
+            return None
+        if sorted_population == None:
+            mark = randint(0,len(self.population))
+        else:
+            mark = rd.choice(sorted_population[:int(0.2*len(sorted_population))])
+            mark = mark[0]
+        return self.population.pop(mark) if 4 < mark < len(self.population) else None
+            
+    def evolution_step(self,data,n_steps=1):
+        for specimen in self.population:
+            #print("optimizing... ")
+            #specimen.draw()
+            result = specimen.optimize_once(data)
+            #print("result: {0}".format(result))
+        sorted_population = self.sort_population(data)
+        birth_coin = random()
+        if birth_coin <= self.BIRTH_PROBABILITY:
+            #print("birth:")
+            baby = self.birth(sorted_population=sorted_population)
+            #baby.draw()
+            self.population.append(baby)
+        mutation_coin = random()
+        if mutation_coin <= self.MUTATION_PROBABILITY:
+            #print("mutation:")
+            mutant = self.mutate(sorted_population=sorted_population)
+            #mutant.draw()
+            self.population.append(mutant)
+        death_coin = random()
+        if death_coin <= self.DEATH_PROBABILITY:
+            self.kill(sorted_population=sorted_population)
+            
+    def best_specimen(self,data):
+        best_error = 10**10
+        best = 0
+        for specimen in self.population:
+            error = specimen.error(data)
+            if error <= best_error:
+                best = specimen
+                best_error = error
+        return best
+    
+    def worst_specimen(self,data):
+        worst_error = 0
+        worst = 10**10
+        for specimen in self.population:
+            error = specimen.error(data)
+            if error >= worst_error:
+                worst = specimen
+                worst_error = error
+        return worst
+    
+    def sort_population(self,data):
+        errors = {}
+        for n, specimen in enumerate(self.population):
+            error = specimen.error(data)
+            errors[n] = error
+        sorted_population = sorted(errors.items(), key=operator.itemgetter(1))
+        
+    def plot_population(self):
+        return False
+
+#################################################################################################################################
 #function that combines two graphs by using the output node of the second graph as one of the inputs of the first
 def insert_at(donor_graph,recipient_graph,site=-1):
     recipient_args = recipient_graph.input_info()
@@ -292,39 +436,20 @@ def insert_at(donor_graph,recipient_graph,site=-1):
     return Tree(new_graph+processed_donor)
 
 def print2Dmatrix(matrix):
-    print('\n'.join([''.join(['{:4}'.format(item) for item in row])
+    print('\n'.join([''.join(['{:4}'.format(item) for item in row]) 
       for row in matrix]))
-
+    
 #makes updates the parameters of a graph
-def gradient(func, values):
+def gradient(function,values):
     EPSILON = 0.000000001
-    value_here = np.repeat(func(values), len(values))
+    value_here = np.array([ function(values) for i in range(len(values)) ])
     dx = np.array([[ EPSILON if i == j else 0 for i in range(len(values)) ] for j in range(len(values)) ])
-    value_there = np.array([ func(values+dx[i]) for i in range(len(values)) ])
+    value_there = np.array([ function(values+dx[i]) for i in range(len(values)) ])
     grad = (value_there-value_here)/EPSILON
     return grad
 
-def run_unfitness(specimen,data):
-    return specimen.unfitness(data)
-
-def log_pop_to_json(population, errors, generation_no):
-    """This function takes a json representation of all specimen in the population and logs it to our json log file"""
-
-    from io import StringIO
-    import json
-
-    # export each specimen as json
-    population = list(map(lambda specimen: specimen.export_json(), population))
-    # Add error value to each specimen
-    for specimen, error in zip(population, errors):
-        specimen["error"] = error
-
-    with open("log.json", "a") as logfile:
-        json.dump({"population": population, "generation": generation_no}, logfile)
-        logfile.write("\n")
-
 #takes the items from the library and mixes them to make new graphs until it finds one that fits the data
-def evolution(data, n_generations=20):
+def evolution(data):
     ACCURACY_GOAL = 0.01
     POPULATION_SIZE = 300
     MUTATION_RATE = 0.1
@@ -337,11 +462,7 @@ def evolution(data, n_generations=20):
         graph = choice(lib[5:])["graph"].clone()
         population.append(graph)
     #compute weights
-    #errors = np.array([ specimen.unfitness(data) for specimen in population ])
-    pool = Pool(8)
-    errors = np.array(pool.starmap(run_unfitness, [(specimen, data) for specimen in population]))
-    pool.close()
-    pool.join()
+    errors = np.array([ specimen.unfitness(data) for specimen in population ])
     #stop if minimum error is below the accuracy goal
     min_error = np.ndarray.min(errors)
     #save the best
@@ -358,8 +479,8 @@ def evolution(data, n_generations=20):
     weights = errors/sum(errors)
     #weights = np.array([ 1/POPULATION_SIZE for i in range(POPULATION_SIZE) ])
     #evolve
-    for generation in range(n_generations):
-        print('evolving generation {0} of {1}'.format(generation, n_generations))
+    for generation in range(20):
+        print('evolving generation {0} of 20'.format(generation))
         #compute weights
         new_population = deepcopy(population)
         temp_weights = deepcopy(weights)
@@ -413,18 +534,16 @@ def evolution(data, n_generations=20):
         errors = deepcopy(errors)
         first_new_index = POPULATION_SIZE-int(POPULATION_SIZE*DEATH_RATE)
         for s, specimen in enumerate(population[first_new_index:]):
-            errors[s+first_new_index] = specimen.unfitness(data)
+            err = specimen.unfitness(data)
+            errors[s+first_new_index] = err#specimen.unfitness(data)
+            if err > 10**7:
+                return specimen
         #stop if minimum error is below the accuracy goal
         min_error = np.ndarray.min(errors)
         #save the best
         winner = np.argmin(errors)
         #population[winner].draw()
         population[winner].plot_optimized(data)
-        population[winner].export_json()
-
-        # Log all populations to json
-        log_pop_to_json(population, errors, generation)
-
         if min_error < best_error_so_far:
             best_error_so_far = min_error
             fittest_specimen = population[winner]
@@ -435,14 +554,7 @@ def evolution(data, n_generations=20):
         #print("population size : {0}".format(len(population)))
         print("min error at generation n."+str(generation)+": "+str(np.ndarray.min(errors)))
     #recompute final errors
-    #errors = np.array([ specimen.unfitness(data) for specimen in population ])
-
-    pool = Pool(8)
-    errors = np.array(pool.starmap(run_unfitness, [(specimen, data) for specimen in population]))
-    pool.close()
-    pool.join()
-
-    winner = np.argmin(errors)
+    errors = np.array([ specimen.unfitness(data) for specimen in population ])
     winner = np.argmin(errors)
     if errors[winner] < best_error_so_far:
             best_error_so_far = errors[winner]
@@ -450,10 +562,3 @@ def evolution(data, n_generations=20):
     return {"specimen": fittest_specimen, "error": best_error_so_far}
 
 ################################################################################################################################
-
-#Add a graph to the lib for each operator
-for n in range(1,5):
-    g = {"type":"graph","graph":Tree([{"lib_id":0,"input":[],"arg_index":0},
-                                 {"lib_id":0,"input":[],"arg_index":1},
-                                 {"lib_id":n,"input":[0,1]}])}
-    lib.append(g)
